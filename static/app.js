@@ -71,6 +71,9 @@
   function open(id, opts) {
     var el = panel(id);
     if (!el) return;
+    document.querySelectorAll('.mt-overlay[data-open="true"]').forEach(function (other) {
+      if (other !== el) other.setAttribute('data-open', 'false');
+    });
     lastFocus = document.activeElement;
     el.setAttribute('data-open', 'true');
     document.body.classList.add('mt-lock');
@@ -92,7 +95,7 @@
 
   function openCourseLink(slug) {
     var target = slug === 'first-move' ? LINKS.firstMoveTelegram : LINKS.telegram;
-    window.open(target, '_blank', 'noopener,noreferrer');
+    window.location.assign(target);
     record('course_link', { slug: slug, destination: target });
   }
 
@@ -236,7 +239,7 @@
     var note = document.getElementById('claim-seat-note');
     var intentSel = document.getElementById('c-intent');
     var tierMeta = {
-      'founding-10': { label: 'FOUNDING 10', noteTxt: '#' + String(Math.max(1, 11 - (BOARD.seatsLeft || 7))).padStart(3, '0') + ' FOUNDING COHORT 01' },
+      'founding-10': { label: 'FREE MVP 10', noteTxt: '#' + String(Math.max(1, 11 - (BOARD.seatsLeft || 7))).padStart(3, '0') + ' · FREE MVP COHORT / LIMITED' },
       'board-access': { label: 'THE FULL BOARD', noteTxt: 'ALL 07 MASTERCLASSES' },
       'brief': { label: 'THE BRIEF', noteTxt: 'FREE / SUNDAY 07:00' }
     };
@@ -294,6 +297,8 @@
         return;
       }
       if (err) err.textContent = '';
+      window.location.assign(LINKS.waitlist);
+      return;
       var btn = briefForm.querySelector('button[type="submit"]');
       var original = btn ? btn.innerHTML : '';
       if (btn) btn.disabled = true;
@@ -325,6 +330,8 @@
         return;
       }
       if (err) err.textContent = '';
+      window.location.assign(LINKS.waitlist);
+      return;
       post('/api/brief', { email: email, locale: lang(), source: 'modal' })
         .then(function (res) {
           if (res.ok) {
@@ -361,46 +368,11 @@
           : selectedMasterclass === 'first-move'
             ? LINKS.firstMove
             : LINKS.waitlist;
-      window.open(destination, '_blank', 'noopener,noreferrer');
+      window.location.assign(destination);
       close(panel('ov-claim'));
-      showToast(lang() === 'ar' ? 'تم فتح نموذج الحجز في نافذة جديدة.' : 'The reservation form opened in a new tab.');
+      showToast(lang() === 'ar' ? 'تم فتح نموذج الحجز.' : 'The reservation form is opening.');
       record('external_reservation', { destination: destination, masterclass: selectedMasterclass, intent: selectedIntent });
       return;
-
-      var btn = document.getElementById('claim-submit');
-      if (btn) btn.disabled = true;
-      var payload = {
-        full_name: name.trim(),
-        email: email.trim(),
-        phone: (document.getElementById('c-phone') || {}).value || '',
-        country: (document.getElementById('c-country') || {}).value || '',
-        masterclass: (document.getElementById('c-masterclass') || {}).value || 'founding-10',
-        intent: (document.getElementById('c-intent') || {}).value || 'enroll',
-        notes: (document.getElementById('c-notes') || {}).value || '',
-        locale: lang()
-      };
-
-      post('/api/enroll', payload)
-        .then(function (res) {
-          if (!res.ok) {
-            if (err) err.textContent = (res.data && res.data.error) || t('netErr');
-            return;
-          }
-          var d = res.data || {};
-          var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
-          set('succ-player', d.player_code || 'PLAYER 000');
-          set('succ-name', payload.full_name + ' — ' + payload.email);
-          set('succ-tier', (d.tier || 'FOUNDING').toUpperCase());
-          set('succ-code', d.credential || 'MONEY TALKS / THE BOARD');
-          var fv = document.getElementById('claim-form-view');
-          var sv = document.getElementById('claim-success-view');
-          if (fv) fv.style.display = 'none';
-          if (sv) sv.style.display = '';
-          claimForm.reset();
-          showToast(t('okEnroll'));
-        })
-        .catch(function () { if (err) err.textContent = t('netErr'); })
-        .finally(function () { if (btn) btn.disabled = false; });
     });
   }
 
