@@ -300,19 +300,10 @@
   function submitToGoogleForm(kind, payload) {
     var cfg = GOOGLE_FORMS[kind];
     if (!cfg) return false;
-    var frame = document.getElementById('mt-google-submit-frame');
-    if (!frame) {
-      frame = document.createElement('iframe');
-      frame.id = 'mt-google-submit-frame';
-      frame.name = 'mt-google-submit-frame';
-      frame.setAttribute('aria-hidden', 'true');
-      frame.style.display = 'none';
-      document.body.appendChild(frame);
-    }
     var form = document.createElement('form');
     form.method = 'POST';
     form.action = cfg.action;
-    form.target = frame.name;
+    form.target = '_self';
     form.style.display = 'none';
     Object.keys(payload).forEach(function (key) {
       var fieldKey = key === 'full_name' ? 'name' : key;
@@ -332,7 +323,7 @@
     });
     document.body.appendChild(form);
     form.submit();
-    setTimeout(function () { form.remove(); }, 1500);
+    setTimeout(function () { form.remove(); }, 3000);
     return true;
   }
 
