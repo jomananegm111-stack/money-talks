@@ -22,6 +22,20 @@
     telegram: 'https://t.me/MoneyTalksClub1',
     firstMoveTelegram: 'https://t.me/MoneyTalksClub1/5'
   };
+  var GOOGLE_FORMS = {
+    waitlist: {
+      action: 'https://docs.google.com/forms/d/e/1FAIpQLSf2BMaozTADFo2XQFOb4M8ZR5cdcprTbZ4o8qdyMfTj5lNY2Q/formResponse',
+      fields: { name: '975290697', email: '1666203135', phone: '810918425', country: '1917804334', masterclass: '1468429776' }
+    },
+    founding: {
+      action: 'https://docs.google.com/forms/d/e/1FAIpQLSf53xOTlR5TM_pqY7pmJyGeXeCYIXPIAkl5cjkQ78q8h0a9LA/formResponse',
+      fields: { name: '2007271144', email: '1469195019', phone: '2044421919', country: '1525191689', career: '1634415196', age: '324247781', why: '2123389604', confirm: '1892666506' }
+    },
+    firstMove: {
+      action: 'https://docs.google.com/forms/d/e/1FAIpQLSdsjdzaegupMJCvhcOzjR3SbmmzMbsCv8Yzuq6doZghv2U_Mg/formResponse',
+      fields: { name: '1121373456', email: '639486719', phone: '99173400', country: '804721613', plan: '194917913' }
+    }
+  };
   try {
     var d = document.getElementById('mt-data');
     if (d) MC = JSON.parse(d.textContent || '[]');
@@ -283,6 +297,58 @@
     showToast._t = setTimeout(function () { box.setAttribute('data-show', 'false'); }, 4200);
   }
 
+  function submitToGoogleForm(kind, payload) {
+    var cfg = GOOGLE_FORMS[kind];
+    if (!cfg) return false;
+    var frame = document.getElementById('mt-google-submit-frame');
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.id = 'mt-google-submit-frame';
+      frame.name = 'mt-google-submit-frame';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.style.display = 'none';
+      document.body.appendChild(frame);
+    }
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = cfg.action;
+    form.target = frame.name;
+    form.style.display = 'none';
+    Object.keys(payload).forEach(function (key) {
+      var fieldKey = key === 'full_name' ? 'name' : key;
+      if (!cfg.fields[fieldKey]) return;
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'entry.' + cfg.fields[fieldKey];
+      input.value = payload[key] == null ? '' : String(payload[key]);
+      form.appendChild(input);
+    });
+    ['fvv', 'pageHistory', 'submissionTimestamp'].forEach(function (key, i) {
+      var hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = key;
+      hidden.value = i === 0 ? '1' : i === 1 ? '0' : '-1';
+      form.appendChild(hidden);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(function () { form.remove(); }, 1500);
+    return true;
+  }
+
+  function showClaimSuccess(payload, label) {
+    var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+    set('succ-player', 'MVP REQUEST');
+    set('succ-name', payload.full_name + ' — ' + payload.email);
+    set('succ-tier', label || 'RESERVATION SENT');
+    set('succ-code', 'MONEY TALKS / GOOGLE FORM / REQUEST RECEIVED');
+    var fv = document.getElementById('claim-form-view');
+    var sv = document.getElementById('claim-success-view');
+    if (fv) fv.style.display = 'none';
+    if (sv) sv.style.display = '';
+    showToast(lang() === 'ar' ? 'تم إرسال بياناتك بنجاح.' : 'Your details were submitted successfully.');
+  }
+
   /* brief form (inline) */
   var briefForm = document.getElementById('brief-form');
   if (briefForm) {
@@ -368,10 +434,24 @@
           : selectedMasterclass === 'first-move'
             ? LINKS.firstMove
             : LINKS.waitlist;
-      window.location.assign(destination);
-      close(panel('ov-claim'));
-      showToast(lang() === 'ar' ? 'تم فتح نموذج الحجز.' : 'The reservation form is opening.');
-      record('external_reservation', { destination: destination, masterclass: selectedMasterclass, intent: selectedIntent });
+      var kind = selectedIntent === 'waitlist' ? 'waitlist' : selectedMasterclass === 'founding-10' ? 'founding' : 'firstMove';
+      var countryNames = { EG: 'Egypt', AE: 'UAE', SA: 'Saudi Arabia', KW: 'Kuwait', QA: 'Qatar', OTHER: 'Other' };
+      var common = {
+        full_name: name.trim(), email: email.trim(), phone: (document.getElementById('c-phone') || {}).value || '',
+        country: countryNames[(document.getElementById('c-country') || {}).value] || (document.getElementById('c-country') || {}).value || ''
+      };
+      var sent = kind === 'founding'
+        ? submitToGoogleForm(kind, Object.assign(common, {
+          career: 'MVP applicant', age: '', why: (document.getElementById('c-notes') || {}).value || 'Interested in the free MVP launch seats', confirm: 'i understand'
+        }))
+        : kind === 'firstMove'
+          ? submitToGoogleForm(kind, Object.assign(common, {
+            plan: selectedIntent === 'enroll' ? 'Launch Price 600 EGP' : 'Regular Entry 900 EGP'
+          }))
+          : submitToGoogleForm(kind, Object.assign(common, { masterclass: selectedMasterclass === 'first-move' ? 'A1 Move ( the only available masterclass for now )' : selectedMasterclass }));
+      if (!sent) { if (err) err.textContent = t('netErr'); return; }
+      showClaimSuccess(common, kind === 'founding' ? 'FREE MVP / FOUNDING 10' : kind === 'firstMove' ? 'A1 FIRST MOVE' : 'WAITLIST');
+      record('google_form_submission', { destination: destination, masterclass: selectedMasterclass, intent: selectedIntent });
       return;
     });
   }
