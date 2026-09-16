@@ -646,6 +646,24 @@
     }
   });
 
+  /* ---------------- personal assessment ---------------- */
+  var assessment = document.getElementById('personal-assessment-form');
+  if (assessment) assessment.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var score = 0;
+    for (var i = 1; i <= 5; i++) {
+      var answer = assessment.querySelector('input[name="pa' + i + '"]:checked');
+      score += answer ? Number(answer.value) : 0;
+    }
+    var result = document.getElementById('personal-assessment-result');
+    if (!result) return;
+    var ar = lang() === 'ar';
+    if (score >= 8) result.textContent = ar ? 'POSITION: PLAYER — عندك قابلية قوية للانضمام. الخطوة التالية ليست إثبات نفسك؛ هي تنفيذ حركة صغيرة واضحة.' : 'POSITION: PLAYER — strong fit for the system. Your next move is not to prove yourself; it is to execute one clear, small move.';
+    else if (score >= 5) result.textContent = ar ? 'POSITION: OPERATOR IN PROGRESS — عندك أساس جيد، لكن محتاج تحول الرؤية إلى نظام ومواعيد ومسؤولية.' : 'POSITION: OPERATOR IN PROGRESS — good raw material. The gap is turning insight into owners, dates and a repeatable system.';
+    else result.textContent = ar ? 'POSITION: READER — ابدأ من الرقعة: قبل الحركة، سمِّ القيود والتكلفة والمعلومة الناقصة.' : 'POSITION: READER — start with the board: name the constraint, the cost and the missing information before making the move.';
+    record('personal_assessment', { score: score });
+  });
+
   /* ---------------- analytics (fire & forget) ---------------- */
   function record(name, payload) {
     try {
