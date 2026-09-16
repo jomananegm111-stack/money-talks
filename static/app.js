@@ -22,6 +22,7 @@
     telegram: 'https://t.me/MoneyTalksClub1',
     firstMoveTelegram: 'https://t.me/MoneyTalksClub1/5'
   };
+  var MAIN_FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSf2BMaozTADFo2XQFOb4M8ZR5cdcprTbZ4o8qdyMfTj5lNY2Q/viewform?usp=pp_url';
   var GOOGLE_FORMS = {
     waitlist: {
       action: 'https://docs.google.com/forms/d/e/1FAIpQLSf2BMaozTADFo2XQFOb4M8ZR5cdcprTbZ4o8qdyMfTj5lNY2Q/formResponse',
@@ -117,6 +118,10 @@
     var opener = e.target.closest('[data-open]');
     if (opener) {
       e.preventDefault();
+      if (opener.getAttribute('data-telegram') === 'true') {
+        window.location.assign(LINKS.firstMoveTelegram);
+        return;
+      }
       var id = 'ov-' + opener.getAttribute('data-open');
       var tier = opener.getAttribute('data-tier');
       if (id === 'ov-claim' && tier) prefillClaim(tier);
@@ -425,24 +430,18 @@
           : selectedMasterclass === 'first-move'
             ? LINKS.firstMove
             : LINKS.waitlist;
-      var kind = selectedIntent === 'waitlist' ? 'waitlist' : selectedMasterclass === 'founding-10' ? 'founding' : 'firstMove';
       var countryNames = { EG: 'Egypt', AE: 'UAE', SA: 'Saudi Arabia', KW: 'Kuwait', QA: 'Qatar', OTHER: 'Other' };
-      var common = {
-        full_name: name.trim(), email: email.trim(), phone: (document.getElementById('c-phone') || {}).value || '',
-        country: countryNames[(document.getElementById('c-country') || {}).value] || (document.getElementById('c-country') || {}).value || ''
+      var values = {
+        'entry.975290697': name.trim(),
+        'entry.1666203135': email.trim(),
+        'entry.810918425': (document.getElementById('c-phone') || {}).value || '',
+        'entry.1917804334': countryNames[(document.getElementById('c-country') || {}).value] || (document.getElementById('c-country') || {}).value || '',
+        'entry.1468429776': selectedMasterclass === 'first-move' ? 'A1 Move ( the only available masterclass for now )' : selectedMasterclass
       };
-      var sent = kind === 'founding'
-        ? submitToGoogleForm(kind, Object.assign(common, {
-          career: 'MVP applicant', age: '', why: (document.getElementById('c-notes') || {}).value || 'Interested in the free MVP launch seats', confirm: 'i understand'
-        }))
-        : kind === 'firstMove'
-          ? submitToGoogleForm(kind, Object.assign(common, {
-            plan: selectedIntent === 'enroll' ? 'Launch Price 600 EGP' : 'Regular Entry 900 EGP'
-          }))
-          : submitToGoogleForm(kind, Object.assign(common, { masterclass: selectedMasterclass === 'first-move' ? 'A1 Move ( the only available masterclass for now )' : selectedMasterclass }));
-      if (!sent) { if (err) err.textContent = t('netErr'); return; }
-      showClaimSuccess(common, kind === 'founding' ? 'FREE MVP / FOUNDING 10' : kind === 'firstMove' ? 'A1 FIRST MOVE' : 'WAITLIST');
-      record('google_form_submission', { destination: destination, masterclass: selectedMasterclass, intent: selectedIntent });
+      var query = new URLSearchParams(values).toString();
+      close(panel('ov-claim'));
+      window.location.assign(MAIN_FORM + '&' + query);
+      record('main_form_prefill', { destination: MAIN_FORM, masterclass: selectedMasterclass, intent: selectedIntent });
       return;
     });
   }
